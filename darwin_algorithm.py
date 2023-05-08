@@ -86,6 +86,28 @@ def mutate(individual):
     return ''.join(mutated)
 
 
+def local_opt(individual, old_fittness):
+    n = random.randint(5, 15)
+    for i in range(n):
+        mutated = list(individual)
+        index1 = random.randint(0, len(mutated) - 1)
+        index2 = index1
+        while index1 == index2:
+            index2 = random.randint(0, len(mutated) - 1)
+        mutated[index1], mutated[index2] = mutated[index2], mutated[index1]
+        new_individual = ''.join(mutated)
+        new_fittness = fitness(ciphertext.translate(str.maketrans(new_individual, 'abcdefghijklmnopqrstuvwxyz')))
+        if new_fittness > old_fittness:
+            old_fittness = new_fittness
+            individual = new_individual
+
+    # new_individual = ''.join(mutated)
+    # new_fittness = fitness(ciphertext.translate(str.maketrans(new_individual, 'abcdefghijklmnopqrstuvwxyz')))
+    # if new_fittness > old_fittness:
+    #     return new_individual, new_fittness
+    return individual,  old_fittness
+
+
 # generate initial population
 population = [''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 26)) for i in range(POPULATION_SIZE)]
 
@@ -96,6 +118,13 @@ steps = 0
 for generation in range(NUM_GENERATIONS):
     # calculate fitness for each individual
     steps += 1
+
+    new_population = []
+    fitnesses = []
+    for individual in population:
+        new_individual, new_fittness = local_opt(individual, fitness(
+            ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz'))))
+        fitnesses.append((new_individual, new_fittness))
 
     fitnesses = [(individual, fitness(ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz')))) for individual in population]
 

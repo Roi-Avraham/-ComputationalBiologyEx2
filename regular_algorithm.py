@@ -21,7 +21,7 @@ with open('Letter2_Freq.txt', 'r') as f:
 # define parameters for the genetic algorithm
 POPULATION_SIZE = 100
 NUM_GENERATIONS = 100
-MUTATION_RATE = 0.1
+MUTATION_RATE = 0.05
 ELITE_SIZE = 20
 TOURNAMENT_SIZE = 10
 
