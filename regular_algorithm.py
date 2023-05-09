@@ -22,12 +22,15 @@ with open('Letter2_Freq.txt', 'r') as f:
 POPULATION_SIZE = 100
 NUM_GENERATIONS = 100
 MUTATION_RATE = 0.05
-ELITE_SIZE = 20
+ELITE_SIZE = 10
 TOURNAMENT_SIZE = 10
+steps = 0
 
 
 # define fitness function
-def fitness(plaintext):
+def calculate_fitness(plaintext):
+    global steps
+    steps += 1
     plaintext_freq = {}
     plaintext_pair_freq = {}
     plaintext_words = set(plaintext.split())
@@ -42,11 +45,12 @@ def fitness(plaintext):
                 pair = plaintext[i:i + 2]
                 plaintext_pair_freq[pair] = plaintext_pair_freq.get(pair, 0) + 1
     letter_fitness = sum(
-        1/(1+abs(plaintext_freq.get(letter, 0) / count_alpha - letter_freq.get(letter, 0))) for letter in letter_freq)
+        1 / (1 + abs(plaintext_freq.get(letter, 0) / count_alpha - letter_freq.get(letter, 0))) for letter in
+        letter_freq)
     pair_fitness = sum(
-        1/(1+abs(plaintext_pair_freq.get(pair, 0) / count_alpha - letter_pair_freq.get(pair, 0))) for pair in
+        1 / (1 + abs(plaintext_pair_freq.get(pair, 0) / count_alpha - letter_pair_freq.get(pair, 0))) for pair in
         letter_pair_freq)
-    return 2*num_words_in_dict + letter_fitness + pair_fitness
+    return 2 * num_words_in_dict + letter_fitness + pair_fitness
 
 
 def new_word(word):
@@ -87,52 +91,80 @@ def mutate(individual):
     return ''.join(mutated)
 
 
-# generate initial population
-population = [''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 26)) for i in range(POPULATION_SIZE)]
+def main_loop():
+    first_best_fittness = None
+    half_best_fittness = None
+    # generate initial population
+    population = [''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 26)) for i in range(POPULATION_SIZE)]
+
+    best_permutation = None
+    best_fitness = float('-inf')
+    early_converge = False
+    for generation in range(1, NUM_GENERATIONS):
+        # calculate fitness for each individual
+        fitnesses = [
+            (individual,
+             calculate_fitness(ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz')))) for
+            individual in population]
+
+        fitnesses.sort(key=lambda x: x[1], reverse=True)
+
+        if generation == 1:
+            first_best_fittness = fitnesses[0][1]
+
+        if generation == int(NUM_GENERATIONS / 2):
+            half_best_fittness = fitnesses[0][1]
+
+        if fitnesses[0][1] > best_fitness:
+            best_individual, best_fitness = fitnesses[0]
+            best_permutation = dict(zip(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
+
+        if generation == int(NUM_GENERATIONS / 5) and abs(best_fitness - first_best_fittness) < 5:
+            early_converge = True
+            break
+
+        if generation == int(0.75*NUM_GENERATIONS) and abs(best_fitness - half_best_fittness) < 5:
+            break
+        # select elite individuals
+        elite = [individual for individual, fitness in fitnesses[:ELITE_SIZE]]
+        # select parents via tournament selection
+        parents = []
+        for i in range(POPULATION_SIZE - ELITE_SIZE):
+            tournament = random.sample(population, TOURNAMENT_SIZE)
+            tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if
+                                    individual in tournament]
+            tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
+            parents.append(tournament_fitnesses[0][0])
+        # breed offspring via crossover
+        offspring = []
+        for i in range(0, POPULATION_SIZE - ELITE_SIZE, 2):
+            parent1, parent2 = random.sample(parents, 2)
+            child1, child2 = crossover(parent1, parent2)
+            offspring.append(child1)
+            offspring.append(child2)
+        # apply mutation to offspring
+        population = elite + [mutate(individual) for individual in offspring]
+        print(f"Generation {generation} - Steps: {steps}, Best Fitness: {best_fitness}")
+
+    # write best permutation to file
+    if best_permutation is not None:
+        with open('permutations.txt', 'w') as f:
+            for k, v in sorted(best_permutation.items(), key=lambda item: item[1]):
+                f.write(f'{v} {k}\n')
+
+    # output plaintext
+    best_individual = fitnesses[0][0]
+    plaintext = ciphertext.translate(str.maketrans(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
+    with open('plaintext.txt', 'w') as f:
+        f.write(plaintext)
+    if not early_converge:
+        return True
+    return False
 
 
-best_permutation = None
-best_fitness = float('-inf')
-steps = 0
-for generation in range(NUM_GENERATIONS):
-    # calculate fitness for each individual
-    steps += 1
-
-    fitnesses = [(individual, fitness(ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz')))) for individual in population]
-
-    fitnesses.sort(key=lambda x: x[1], reverse=True)
-    if fitnesses[0][1] > best_fitness:
-        best_individual, best_fitness = fitnesses[0]
-        best_permutation = dict(zip(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
-    # select elite individuals
-    elite = [individual for individual, fitness in fitnesses[:ELITE_SIZE]]
-    # select parents via tournament selection
-    parents = []
-    for i in range(POPULATION_SIZE - ELITE_SIZE):
-        tournament = random.sample(population, TOURNAMENT_SIZE)
-        tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if individual in tournament]
-        tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
-        parents.append(tournament_fitnesses[0][0])
-    # breed offspring via crossover
-    offspring = []
-    for i in range(0,POPULATION_SIZE - ELITE_SIZE, 2):
-        parent1, parent2 = random.sample(parents, 2)
-        child1, child2 = crossover(parent1, parent2)
-        offspring.append(child1)
-        offspring.append(child2)
-    # apply mutation to offspring
-    population = elite + [mutate(individual) for individual in offspring]
-    print(f"Generation {generation} - Steps: {steps}, Best Fitness: {best_fitness}")
-
-# write best permutation to file
-if best_permutation is not None:
-    with open('permutations.txt', 'w') as f:
-        for k, v in sorted(best_permutation.items(), key=lambda item: item[1]):
-            f.write(f'{v} {k}\n')
-print(best_permutation)
-
-# output plaintext
-best_individual = fitnesses[0][0]
-plaintext = ciphertext.translate(str.maketrans(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
-with open('plaintext.txt', 'w') as f:
-    f.write(plaintext)
+if __name__ == '__main__':
+    i = 0
+    while i < 3:
+        i += 1
+        if main_loop():
+            break
