@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 # read in the ciphertext, dictionary file, and letter frequency files
 with open('enc.txt', 'r') as f:
@@ -28,6 +29,8 @@ TOURNAMENT_SIZE = 10
 
 # define fitness function
 def fitness(plaintext):
+    global steps
+    steps += 1
     plaintext_freq = {}
     plaintext_pair_freq = {}
     plaintext_words = set(plaintext.split())
@@ -102,21 +105,19 @@ def local_opt(individual, old_fittness):
             old_fittness = new_fittness
             individual = new_individual
 
-    # new_individual = ''.join(mutated)
-    # new_fittness = fitness(ciphertext.translate(str.maketrans(new_individual, 'abcdefghijklmnopqrstuvwxyz')))
-    # if new_fittness > old_fittness:
-    #     return new_individual, new_fittness
     return individual,  old_fittness
 
 
 
 # generate initial population
 population = [''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 26)) for i in range(POPULATION_SIZE)]
+all_best_fittness = []
 
 
 best_permutation = None
 best_fitness = float('-inf')
 steps = 0
+converge = False
 for generation in range(NUM_GENERATIONS):
 
     # calculate fitness for each individual
@@ -133,16 +134,43 @@ for generation in range(NUM_GENERATIONS):
     if fitnesses[0][1] > best_fitness:
         best_individual, best_fitness = fitnesses[0]
         best_permutation = dict(zip(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
+
+    all_best_fittness.append(best_fitness)
+
     # select elite individuals
     elite = [individual for individual, fitness in fitnesses[:ELITE_SIZE]]
+
+    n = int(len(fitnesses) * 0.05)
+    top_n = [elem[1] for elem in fitnesses[:n]]
+    counter = Counter(top_n)
+    if counter.most_common(1)[0][1] >= n:
+        converge = True
+
+    if int(NUM_GENERATIONS / 5) <= generation < int(0.75 * NUM_GENERATIONS) and converge:
+        converge = False
+        offspring = []
+        print("in converges")
+        for i in range(0, POPULATION_SIZE - ELITE_SIZE, 2):
+            parent1, parent2 = random.sample(fitnesses[50:], 2)
+            child1, child2 = crossover(parent1[0], parent2[0])
+            offspring.append(child1)
+            offspring.append(child2)
+        new_population = []
+        for individual in offspring:
+            new_population.append(mutate(individual))
+        for individual in elite:
+            new_population.append(mutate(individual))
+        population = new_population
+        continue
+
+    if generation >= int(0.75 * NUM_GENERATIONS) and converge:
+        break
     # select parents via tournament selection
     parents = []
     tournament_fitnesses = []
     for i in range(POPULATION_SIZE - ELITE_SIZE):
         tournament = random.sample(population, TOURNAMENT_SIZE)
         tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if individual in tournament]
-        # if len(tournament_fitnesses) == 0:
-        #     continue
         tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
         parents.append(tournament_fitnesses[0][0])
     # breed offspring via crossover
