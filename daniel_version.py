@@ -3,6 +3,9 @@ import string
 import sys
 from statistics import mean
 
+import numpy as np
+from matplotlib import pyplot as plt
+
 # read in the ciphertext, dictionary file, and letter frequency files
 with open('enc.txt', 'r') as f:
     ciphertext = f.read().strip().lower()
@@ -28,11 +31,12 @@ NUM_GENERATIONS = 100
 MUTATION_RATE = 0.05
 ELITE_SIZE = 10
 TOURNAMENT_SIZE = 30
-steps = 0
 MODE = sys.argv[1]
 print(MODE)
+steps = 0
 best_scores = []
 STOP = False
+dict_graph = {}
 
 
 # define fitness function
@@ -130,16 +134,28 @@ def are_last_n_close(lst):
     return all(abs(last_10[i] - last_10[i - 1]) <= 1 for i in range(1, 10))
 
 
-def gentic_algorithm():
+def enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array):
+    global dict_graph
+    data = [average_fittness_array, best_fitness_array, steps_array, worst_fittness_array]
+    dict_graph[index] = data
+
+
+def gentic_algorithm(index):
+
+    global dict_graph, STOP
+
     # generate initial population
     population = [''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 26)) for i in range(POPULATION_SIZE)]
 
     best_fitness = float('-inf')
     average_fittness_array = []
+    best_fitness_array = []
+    worst_fittness_array = []
+    steps_array = []
 
     for generation in range(1, NUM_GENERATIONS + 1):
         fitnesses = []
-        if MODE == "R":
+        if MODE == "C":
             # calculate fitness for each individual
             fitnesses = [
                 (individual,
@@ -155,7 +171,6 @@ def gentic_algorithm():
                 fitnesses.append((new_individual, new_fittness))
                 new_population.append(new_individual)
 
-            population = new_population
         elif MODE == "D":
             for individual in population:
                 new_individual, new_fittness = local_opt(individual, calculate_fitness(
@@ -167,17 +182,25 @@ def gentic_algorithm():
         if fitnesses[0][1] > best_fitness:
             best_individual, best_fitness = fitnesses[0]
 
-        if STOP:
-            break
+        best_fitness_array.append(best_fitness)
+        worst_fittness_array.append(fitnesses[-1][1])
 
         # save the average fittness
         fit = [fitnesse[1] for fitnesse in fitnesses]
         average = mean(fit)
         average_fittness_array.append(average)
+
+        global steps
+        steps_array.append(steps)
+
+        if STOP:
+            enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
+            break
+
         if are_last_n_close(average_fittness_array):
             best_scores.append(fitnesses[0])
             print("in here")
-            print(average_fittness_array)
+            enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
             return False
 
         # select elite individuals
@@ -185,10 +208,19 @@ def gentic_algorithm():
 
         # select parents via tournament selection
         parents = []
+        weights = [pair[1] for pair in fitnesses]
+        total_weight = sum(weights)
+        probability_dist = [w / total_weight for w in weights]
+
         for i in range(POPULATION_SIZE - ELITE_SIZE):
-            tournament = random.sample(population, TOURNAMENT_SIZE)
-            tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if
-                                    individual in tournament]
+            # tournament = random.sample(population, TOURNAMENT_SIZE)
+            # tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if
+            #                         individual in tournament]
+            # tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
+            # parents.append(tournament_fitnesses[0][0])
+
+            # # randomly select from the pairs using the probability distribution
+            tournament_fitnesses = random.choices(fitnesses, weights=probability_dist, k=TOURNAMENT_SIZE)
             tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
             parents.append(tournament_fitnesses[0][0])
 
@@ -205,25 +237,79 @@ def gentic_algorithm():
         print(f"Generation {generation} - Steps: {steps}, Best Fitness: {best_fitness}")
 
     best_scores.append(fitnesses[0])
-    print(average_fittness_array)
+    enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
+    STOP = True
     return True
 
 
+def create_graph(max_index):
+    global dict_graph
+    avg = dict_graph[max_index][0]
+    best = dict_graph[max_index][1]
+    worst = dict_graph[max_index][3]
+    generation = [i for i in range(1, len(avg)+1)]
+    generation = np.array(generation)
+
+    plt.figure()  # create a new figure
+    # Plot the data
+    bar_width = 0.35
+    plt.bar(generation, worst, label='worst fittness', color='green')
+    plt.bar(generation+bar_width, best, width=bar_width, label='best fittness', color='orange')
+    plt.plot(generation, avg, label= 'average fittness', color='red')
+    mode = ""
+    if MODE == "C":
+        mode = "CLASSIC"
+    elif MODE == "L":
+        mode = "LAMARK"
+    elif MODE == "D":
+        mode = "DARVIN"
+
+    plt.title(f"{mode},POPULATION SIZE: {POPULATION_SIZE}, MUTATION RATE:{MUTATION_RATE}, ELITE SIZE:{ELITE_SIZE},"
+              f"TOURNAMENT SIZE: {TOURNAMENT_SIZE}")
+    plt.xlabel('Generation')
+    plt.ylabel('Fittness score')
+
+    # Set the x-limit of the first subplot
+    plt.xlim(left=0)
+
+    # Add a legend
+    plt.legend()
+
+    plt.figure()  # create a new figure
+    steps = dict_graph[max_index][2]
+
+    # Plot the data
+    plt.bar(generation, steps, label='steps')
+
+    plt.title(f"{mode},POPULATION SIZE: {POPULATION_SIZE}, MUTATION RATE:{MUTATION_RATE}, ELITE SIZE:{ELITE_SIZE},"
+              f"TOURNAMENT SIZE: {TOURNAMENT_SIZE}")
+    plt.xlabel('Generation')
+    plt.ylabel('number of calls to fittness')
+
+    # Add a legend
+    plt.legend()
+    plt.xlim(left=0)
+
+    plt.show()
+
+
 if __name__ == '__main__':
-    if not gentic_algorithm():
-        run_number = 1
+    run_number = 1
+    if not gentic_algorithm(str(run_number)):
         while run_number < 5 and not STOP:
             run_number += 1
             MUTATION_RATE = random.uniform(MUTATION_RATE, 0.5)
-            gentic_algorithm()
+            #steps = 0
+            gentic_algorithm(str(run_number))
 
     max_pair = max(best_scores, key=lambda pair: pair[1])
+    max_index = best_scores.index(max_pair) + 1 # get the index of the tuple with the maximum score
 
     best_permutation = dict(zip(max_pair[0], 'abcdefghijklmnopqrstuvwxyz'))
 
     # write the best permutation to file
     if best_permutation is not None:
-        with open('permutations.txt', 'w') as f:
+        with open('perm.txt', 'w') as f:
             for k, v in sorted(best_permutation.items(), key=lambda item: item[0]):
                 f.write(f'{k}: {v}\n')
 
@@ -233,6 +319,6 @@ if __name__ == '__main__':
     with open('plaintext.txt', 'w') as f:
         f.write(plaintext)
 
+    create_graph(str(max_index))
 
-    #create the graph
-    generation = [i for i in range(1, NUM_GENERATIONS+1)]
+
