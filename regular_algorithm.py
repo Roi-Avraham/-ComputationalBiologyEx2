@@ -1,8 +1,15 @@
 import random
+import string
+import sys
+from statistics import mean
+
+import numpy as np
+from matplotlib import pyplot as plt
 
 # read in the ciphertext, dictionary file, and letter frequency files
-with open('enc2.txt', 'r') as f:
+with open('enc.txt', 'r') as f:
     ciphertext = f.read().strip().lower()
+    ciphertext = ciphertext.translate(str.maketrans("", "", string.punctuation))
 
 with open('dict.txt', 'r') as f:
     dictionary = set(word.strip().lower() for word in f.readlines())
@@ -23,18 +30,26 @@ POPULATION_SIZE = 100
 NUM_GENERATIONS = 100
 MUTATION_RATE = 0.05
 ELITE_SIZE = 10
-TOURNAMENT_SIZE = 10
+TOURNAMENT_SIZE = 30
+MODE = sys.argv[1]
+print(MODE)
 steps = 0
+best_scores = []
+STOP = False
+dict_graph = {}
 
 
 # define fitness function
 def calculate_fitness(plaintext):
     global steps
+    global STOP
     steps += 1
     plaintext_freq = {}
     plaintext_pair_freq = {}
     plaintext_words = set(plaintext.split())
     num_words_in_dict = len(plaintext_words.intersection(dictionary))
+    if num_words_in_dict == len(plaintext_words):
+        STOP = True
     count_alpha = 0
     for i in range(len(plaintext)):
         letter = plaintext[i]
@@ -81,60 +96,128 @@ def crossover(parent1, parent2):
     return child1, child2
 
 
-# define mutation operator
 def mutate(individual):
-    mutated = list(individual)
-    for i in range(len(mutated)):
-        if random.random() < MUTATION_RATE:
-            j = random.randint(0, len(mutated) - 1)
-            mutated[i], mutated[j] = mutated[j], mutated[i]
-    return ''.join(mutated)
+    """
+    Mutate a candidate permutation by swapping two random elements.
+    """
+    candidate = list(individual)
+    pos1, pos2 = random.sample(range(26), 2)
+    candidate[pos1], candidate[pos2] = candidate[pos2], candidate[pos1]
+    return ''.join(candidate)
 
 
-def main_loop():
-    first_best_fittness = None
-    half_best_fittness = None
+def local_opt(individual, old_fittness):
+    n = random.randint(1, 2)
+    for i in range(n):
+        mutated = list(individual)
+        index1 = random.randint(0, len(mutated) - 1)
+        index2 = index1
+        while index1 == index2:
+            index2 = random.randint(0, len(mutated) - 1)
+        mutated[index1], mutated[index2] = mutated[index2], mutated[index1]
+        new_individual = ''.join(mutated)
+        new_fittness = calculate_fitness(
+            ciphertext.translate(str.maketrans(new_individual, 'abcdefghijklmnopqrstuvwxyz')))
+        if new_fittness > old_fittness:
+            old_fittness = new_fittness
+            individual = new_individual
+
+    return individual, old_fittness
+
+
+def are_last_n_close(lst):
+    n = len(lst)
+    if n < 10:
+        return False
+
+    last_10 = lst[-10:]
+    return all(abs(last_10[i] - last_10[i - 1]) <= 1 for i in range(1, 10))
+
+
+def enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array):
+    global dict_graph
+    data = [average_fittness_array, best_fitness_array, steps_array, worst_fittness_array]
+    dict_graph[index] = data
+
+
+def gentic_algorithm(index):
+
+    global dict_graph, STOP
+
     # generate initial population
     population = [''.join(random.sample('abcdefghijklmnopqrstuvwxyz', 26)) for i in range(POPULATION_SIZE)]
 
-    best_permutation = None
     best_fitness = float('-inf')
-    early_converge = False
-    for generation in range(1, NUM_GENERATIONS):
-        # calculate fitness for each individual
-        fitnesses = [
-            (individual,
-             calculate_fitness(ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz')))) for
-            individual in population]
+    average_fittness_array = []
+    best_fitness_array = []
+    worst_fittness_array = []
+    steps_array = []
+
+    for generation in range(1, NUM_GENERATIONS + 1):
+        fitnesses = []
+        if MODE == "C":
+            # calculate fitness for each individual
+            fitnesses = [
+                (individual,
+                 calculate_fitness(ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz')))) for
+                individual in population]
+
+        elif MODE == "L":
+            # calculate fitness for each individual
+            new_population = []
+            for individual in population:
+                new_individual, new_fittness = local_opt(individual, calculate_fitness(
+                    ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz'))))
+                fitnesses.append((new_individual, new_fittness))
+                new_population.append(new_individual)
+
+        elif MODE == "D":
+            for individual in population:
+                new_individual, new_fittness = local_opt(individual, calculate_fitness(
+                    ciphertext.translate(str.maketrans(individual, 'abcdefghijklmnopqrstuvwxyz'))))
+                fitnesses.append((individual, new_fittness))
 
         fitnesses.sort(key=lambda x: x[1], reverse=True)
 
-        if generation == 1:
-            first_best_fittness = fitnesses[0][1]
-
-        if generation == int(NUM_GENERATIONS / 2):
-            half_best_fittness = fitnesses[0][1]
-
         if fitnesses[0][1] > best_fitness:
             best_individual, best_fitness = fitnesses[0]
-            best_permutation = dict(zip(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
 
-        if generation == int(NUM_GENERATIONS / 5) and abs(best_fitness - first_best_fittness) < 5:
-            early_converge = True
+        best_fitness_array.append(best_fitness)
+        worst_fittness_array.append(fitnesses[-1][1])
+
+        # save the average fittness
+        fit = [fitnesse[1] for fitnesse in fitnesses]
+        average = mean(fit)
+        average_fittness_array.append(average)
+
+        global steps
+        steps_array.append(steps)
+
+        if STOP:
+            enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
             break
 
-        if generation == int(0.75*NUM_GENERATIONS) and abs(best_fitness - half_best_fittness) < 5:
-            break
+        if are_last_n_close(average_fittness_array):
+            best_scores.append(fitnesses[0])
+            print("in here")
+            enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
+            return False
+
         # select elite individuals
         elite = [individual for individual, fitness in fitnesses[:ELITE_SIZE]]
+
         # select parents via tournament selection
         parents = []
+        weights = [pair[1] for pair in fitnesses]
+        total_weight = sum(weights)
+        probability_dist = [w / total_weight for w in weights]
+
         for i in range(POPULATION_SIZE - ELITE_SIZE):
-            tournament = random.sample(population, TOURNAMENT_SIZE)
-            tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if
-                                    individual in tournament]
+            # # randomly select from the pairs using the probability distribution
+            tournament_fitnesses = random.choices(fitnesses, weights=probability_dist, k=TOURNAMENT_SIZE)
             tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
             parents.append(tournament_fitnesses[0][0])
+
         # breed offspring via crossover
         offspring = []
         for i in range(0, POPULATION_SIZE - ELITE_SIZE, 2):
@@ -142,29 +225,243 @@ def main_loop():
             child1, child2 = crossover(parent1, parent2)
             offspring.append(child1)
             offspring.append(child2)
+
         # apply mutation to offspring
         population = elite + [mutate(individual) for individual in offspring]
         print(f"Generation {generation} - Steps: {steps}, Best Fitness: {best_fitness}")
 
-    # write best permutation to file
+    best_scores.append(fitnesses[0])
+    enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
+    STOP = True
+    return True
+
+
+def create_graph(max_index):
+    global dict_graph
+    avg = dict_graph[max_index][0]
+    best = dict_graph[max_index][1]
+    worst = dict_graph[max_index][3]
+    generation = [i for i in range(1, len(avg)+1)]
+    generation = np.array(generation)
+
+    plt.figure()  # create a new figure
+    # Plot the data
+    bar_width = 0.35
+    plt.bar(generation, worst, label='worst fittness', color='green')
+    plt.bar(generation+bar_width, best, width=bar_width, label='best fittness', color='orange')
+    plt.plot(generation, avg, label= 'average fittness', color='red')
+    mode = ""
+    if MODE == "C":
+        mode = "CLASSIC"
+    elif MODE == "L":
+        mode = "LAMARK"
+    elif MODE == "D":
+        mode = "DARVIN"
+
+    plt.title(f"{mode},POPULATION SIZE: {POPULATION_SIZE}, MUTATION RATE:{MUTATION_RATE}, ELITE SIZE:{ELITE_SIZE},"
+              f"TOURNAMENT SIZE: {TOURNAMENT_SIZE}")
+    plt.xlabel('Generation')
+    plt.ylabel('Fittness score')
+
+    # Set the x-limit of the first subplot
+    plt.xlim(left=0)
+
+    # Add a legend
+    plt.legend()
+
+    plt.figure()  # create a new figure
+    steps = dict_graph[max_index][2]
+
+    # Plot the data
+    plt.bar(generation, steps, label='steps')
+
+    plt.title(f"{mode},POPULATION SIZE: {POPULATION_SIZE}, MUTATION RATE:{MUTATION_RATE}, ELITE SIZE:{ELITE_SIZE},"
+              f"TOURNAMENT SIZE: {TOURNAMENT_SIZE}")
+    plt.xlabel('Generation')
+    plt.ylabel('number of calls to fittness')
+
+    # Add a legend
+    plt.legend()
+    plt.xlim(left=0)
+
+    plt.show()
+
+
+def start(parm, value):
+    if parm == "GENERATIONS":
+        global NUM_GENERATIONS
+        NUM_GENERATIONS = value
+    elif parm == "POPULATION":
+        global POPULATION_SIZE
+        POPULATION_SIZE = value
+    elif parm == "MUTATION":
+        global MUTATION_RATE
+        MUTATION_RATE = value
+    elif parm == "ELITE":
+        global ELITE_SIZE
+        ELITE_SIZE = value
+    elif parm == "TOURNAMENT":
+        global TOURNAMENT_SIZE
+        TOURNAMENT_SIZE = value
+    run_number = 1
+    if not gentic_algorithm(str(run_number)):
+        while run_number < 5 and not STOP:
+            run_number += 1
+            MUTATION_RATE = random.uniform(MUTATION_RATE, 0.5)
+            #steps = 0
+            gentic_algorithm(str(run_number))
+
+    max_pair = max(best_scores, key=lambda pair: pair[1])
+    max_index = best_scores.index(max_pair) + 1 # get the index of the tuple with the maximum score
+
+    best_permutation = dict(zip(max_pair[0], 'abcdefghijklmnopqrstuvwxyz'))
+
+    # write the best permutation to file
     if best_permutation is not None:
-        with open('permutations.txt', 'w') as f:
-            for k, v in sorted(best_permutation.items(), key=lambda item: item[1]):
-                f.write(f'{v} {k}\n')
+        with open('perm.txt', 'w') as f:
+            for k, v in sorted(best_permutation.items(), key=lambda item: item[0]):
+                f.write(f'{k}: {v}\n')
 
     # output plaintext
-    best_individual = fitnesses[0][0]
+    best_individual = max_pair[0]
     plaintext = ciphertext.translate(str.maketrans(best_individual, 'abcdefghijklmnopqrstuvwxyz'))
     with open('plaintext.txt', 'w') as f:
         f.write(plaintext)
-    if not early_converge:
-        return True
-    return False
+
+    global dict_graph
+    data_dict = dict_graph[str(max_index)]
+    return data_dict
+    # create_graph(str(max_index))
+
+def init_data():
+    global POPULATION_SIZE
+    global NUM_GENERATIONS
+    global MUTATION_RATE
+    global ELITE_SIZE
+    global TOURNAMENT_SIZE
+    global STOP
+    global best_scores
+    global steps
+    POPULATION_SIZE = 100
+    NUM_GENERATIONS = 100
+    MUTATION_RATE = 0.05
+    ELITE_SIZE = 10
+    TOURNAMENT_SIZE = 30
+    STOP = False
+    best_scores = []
+    steps = 0
+
+
+def create_sub_plot_graph(dict_subplot, parm):
+    # plt.figure()  # create a new figure
+    fig, ax = plt.subplots()
+    color = ["red", "orange", "green", "black", "yellow"]
+    i = 0
+    for key in dict_subplot:
+        avg = dict_subplot[key][0]
+        generation = [i for i in range(1, len(avg) + 1)]
+        generation = np.array(generation)
+        # Plot the data
+        ax.plot(generation, avg, label=f'average fittness - {key} {parm}', color=color[i])
+        i += 1
+
+    # Add labels and title
+    ax.set_xlabel('Generation')
+    ax.set_ylabel('Fittness')
+    ax.set_title('Average Fittness')
+
+    # Add a legend
+    ax.legend()
+
+    fig2, ax2 = plt.subplots()
+    i = 0
+    for key in dict_subplot:
+        best = dict_subplot[key][1]
+        generation = [i for i in range(1, len(best) + 1)]
+        generation = np.array(generation)
+        # Plot the data
+        ax2.plot(generation, best, label=f'best fittness - {key} {parm}', color=color[i])
+        i += 1
+
+    # Add labels and title
+    ax2.set_xlabel('Generation')
+    ax2.set_ylabel('Fittness')
+    ax2.set_title('Best fittness')
+
+    # Add a legend
+    ax2.legend()
+
+    fig3, ax3 = plt.subplots()
+    i = 0
+    for key in dict_subplot:
+        worst = dict_subplot[key][3]
+        generation = [i for i in range(1, len(worst) + 1)]
+        generation = np.array(generation)
+        # Plot the data
+        ax3.plot(generation, worst, label=f'worst fittness - {key} {parm}', color=color[i])
+        i += 1
+
+    # Add labels and title
+    ax3.set_xlabel('Generation')
+    ax3.set_ylabel('Fittness')
+    ax3.set_title('Worst fittness')
+
+    # Add a legend
+    ax3.legend()
+
+    fig4, ax4 = plt.subplots()
+    i = 0
+    for key in dict_subplot:
+        steps = dict_subplot[key][2]
+        # Plot the data
+        ax4.bar(f"{key} {parm}", steps[-1], label=f'Steps - {key} {parm}', color=color[i])
+        i += 1
+
+    # Add labels and title
+    ax4.set_xlabel(f"{parm}")
+    ax4.set_ylabel('steps')
+    ax4.set_title('Steps')
+
+    # Add a legend
+    ax4.legend()
+
+    plt.show()
 
 
 if __name__ == '__main__':
-    i = 0
-    while i < 3:
-        i += 1
-        if main_loop():
-            break
+    # generations = [50, 80, 100, 150, 200]
+    # dict_subplot = {}
+    # for generation in generations:
+    #     init_data()
+    #     dict_subplot[generation] = start("GENERATIONS", generation)
+
+    #create_sub_plot_graph(dict_subplot, "GENERATION")
+
+    dict_subplot = {}
+    populations = [100, 150, 200, 250]
+    for population in populations:
+        init_data()
+        dict_subplot[population] = start("POPULATION", population)
+    create_sub_plot_graph(dict_subplot, "POPULATION")
+
+    # # To do create the graph
+    # dict_subplot = {}
+    # mutations = [0, 0.1, 0.2, 0.4]
+    # for mutation in mutations:
+    #     init_data()
+    #     dict_subplot[mutation] = start("MUTATION", mutation)
+    # create_sub_plot_graph(dict_subplot, "MUTATION")
+    #
+    # dict_subplot = {}
+    # elitas = [5, 10, 15, 20]
+    # for elita in elitas:
+    #     init_data()
+    #     dict_subplot[elita] = start("ELITE", elita)
+    # # create_sub_plot_graph(dict_subplot, "ELITE")
+    #
+    # dict_subplot = {}
+    # tournaments = [5, 10, 15, 20]
+    # for tournament in tournaments:
+    #     init_data()
+    #     dict_subplot[tournament] = start("TOURNAMENT", tournament)
+    #create_sub_plot_graph(dict_subplot, "TOURNAMENT")
