@@ -2,18 +2,19 @@ import random
 import string
 import sys
 from statistics import mean
-
 import numpy as np
 from matplotlib import pyplot as plt
 
-# read in the ciphertext, dictionary file, and letter frequency files
+# read in the ciphertext
 with open('enc.txt', 'r') as f:
     ciphertext = f.read().strip().lower()
     ciphertext = ciphertext.translate(str.maketrans("", "", string.punctuation))
 
+# read in the dictionary file
 with open('dict.txt', 'r') as f:
     dictionary = set(word.strip().lower() for word in f.readlines())
 
+# read in the letter frequency files
 with open('Letter_Freq.txt', 'r') as f:
     letter_freq = {letter: float(freq) for freq, letter in [line.strip().split() for line in f.readlines()]}
 letter_pair_freq = {}
@@ -31,16 +32,32 @@ NUM_GENERATIONS = 100
 MUTATION_RATE = 0.05
 ELITE_SIZE = 10
 TOURNAMENT_SIZE = 30
+
+# the mode of the algorithm - C for classic D for darvin L for lamark
 MODE = sys.argv[1]
 print(MODE)
+
+# the number of times of calculation fittness in the algorithm
 steps = 0
+
+# list of the best solution and its fittness in each run (in case of early settlement)
 best_scores = []
+
+# indicates the algorithm get to the optimal solution (when all the words we deciphered are show in dict).
 STOP = False
+
+# data for the graphs
 dict_graph = {}
 
 
 # define fitness function
 def calculate_fitness(plaintext):
+    """
+        calculate_fitness calculate the fittness of the solution that get to the plaintext
+        :arg plaintext - the text the current solution deciphered
+        :return the fittness
+    """
+
     global steps
     global STOP
     steps += 1
@@ -69,6 +86,12 @@ def calculate_fitness(plaintext):
 
 
 def new_word(word):
+    """
+            new_word gets word and replace duplicates letters with random non-appeared letters
+            :arg word - some word
+            :return the word but with the replaced letters
+    """
+
     char_counts = {}
     for c in word:
         char_counts[c] = char_counts.get(c, 0) + 1
@@ -88,6 +111,18 @@ def new_word(word):
 
 # define crossover operator
 def crossover(parent1, parent2):
+    """
+        crossover function that 2 solutions (parent 1 and parent 2) and creates 2 children.
+        first the function random index of cut off and after that it creates the 2 children in this way:
+        the first child will be the parent1 until cut off index chained the parent2 from fut off index until the end.
+        the second child will be the parent2 until cut off index chained the parent1 from fut off index until the end.
+        after that replace duplicates letters with random non-appeared letters to the both children by calling new_word
+         function
+        :param parent1 - solution number 1
+        :param parent2 - solution number 2
+        :return the children
+    """
+
     cutoff = random.randint(1, len(parent1) - 1)
     child1 = parent1[:cutoff] + parent2[cutoff:]
     child2 = parent2[:cutoff] + parent1[cutoff:]
@@ -100,13 +135,21 @@ def mutate(individual):
     """
     Mutate a candidate permutation by swapping two random elements.
     """
-    candidate = list(individual)
-    pos1, pos2 = random.sample(range(26), 2)
-    candidate[pos1], candidate[pos2] = candidate[pos2], candidate[pos1]
-    return ''.join(candidate)
+
+    if random.random() < MUTATION_RATE:
+        candidate = list(individual)
+        pos1, pos2 = random.sample(range(26), 2)
+        candidate[pos1], candidate[pos2] = candidate[pos2], candidate[pos1]
+        return ''.join(candidate)
+    return individual
 
 
 def local_opt(individual, old_fittness):
+    """
+        Mutate n (random int) times an individual permutation by swapping two random elements.
+        and accept this mutation only if the new fittness is bigger then the old one.
+    """
+
     n = random.randint(1, 2)
     for i in range(n):
         mutated = list(individual)
@@ -126,6 +169,10 @@ def local_opt(individual, old_fittness):
 
 
 def are_last_n_close(lst):
+    """
+        checks if the diffr between the last 10 elements of lst are at most 1.
+    """
+
     n = len(lst)
     if n < 10:
         return False
@@ -135,13 +182,25 @@ def are_last_n_close(lst):
 
 
 def enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array):
+    """
+       enter all the data we need for the graph to dict_graph
+    """
+
     global dict_graph
     data = [average_fittness_array, best_fitness_array, steps_array, worst_fittness_array]
     dict_graph[index] = data
 
 
 def gentic_algorithm(index):
+    """
+       Runs a genetic algorithm to optimize a population of individuals.
 
+       Args:
+           index (int): The index of the algorithm run.
+
+       Returns:
+           bool: True if the algorithm completes successfully, False otherwise.
+    """
     global dict_graph, STOP
 
     # generate initial population
@@ -213,13 +272,7 @@ def gentic_algorithm(index):
         probability_dist = [w / total_weight for w in weights]
 
         for i in range(POPULATION_SIZE - ELITE_SIZE):
-            # tournament = random.sample(population, TOURNAMENT_SIZE)
-            # tournament_fitnesses = [(individual, fitness) for individual, fitness in fitnesses if
-            #                         individual in tournament]
-            # tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
-            # parents.append(tournament_fitnesses[0][0])
-
-            # # randomly select from the pairs using the probability distribution
+            # randomly select from the pairs using the probability distribution
             tournament_fitnesses = random.choices(fitnesses, weights=probability_dist, k=TOURNAMENT_SIZE)
             tournament_fitnesses.sort(key=lambda x: x[1], reverse=True)
             parents.append(tournament_fitnesses[0][0])
@@ -243,19 +296,29 @@ def gentic_algorithm(index):
 
 
 def create_graph(max_index):
+    """
+       Creates and displays a graph based on the data stored in the 'dict_graph' global variable.
+
+       Args:
+           max_index (int): The index of the data in 'dict_graph' to be plotted.
+
+       Returns:
+           None
+    """
+
     global dict_graph
     avg = dict_graph[max_index][0]
     best = dict_graph[max_index][1]
     worst = dict_graph[max_index][3]
-    generation = [i for i in range(1, len(avg)+1)]
+    generation = [i for i in range(1, len(avg) + 1)]
     generation = np.array(generation)
 
     plt.figure()  # create a new figure
     # Plot the data
     bar_width = 0.35
     plt.bar(generation, worst, label='worst fittness', color='green')
-    plt.bar(generation+bar_width, best, width=bar_width, label='best fittness', color='orange')
-    plt.plot(generation, avg, label= 'average fittness', color='red')
+    plt.bar(generation + bar_width, best, width=bar_width, label='best fittness', color='orange')
+    plt.plot(generation, avg, label='average fittness', color='red')
     mode = ""
     if MODE == "C":
         mode = "CLASSIC"
@@ -294,16 +357,23 @@ def create_graph(max_index):
 
 
 if __name__ == '__main__':
+    """
+       Main function that runs the genetic algorithm, performs additional operations, and creates a graph.
+
+       Returns:
+           None
+    """
+
     run_number = 1
     if not gentic_algorithm(str(run_number)):
         while run_number < 5 and not STOP:
             run_number += 1
             MUTATION_RATE = random.uniform(MUTATION_RATE, 0.5)
-            #steps = 0
+            # steps = 0
             gentic_algorithm(str(run_number))
 
     max_pair = max(best_scores, key=lambda pair: pair[1])
-    max_index = best_scores.index(max_pair) + 1 # get the index of the tuple with the maximum score
+    max_index = best_scores.index(max_pair) + 1  # get the index of the tuple with the maximum score
 
     best_permutation = dict(zip(max_pair[0], 'abcdefghijklmnopqrstuvwxyz'))
 
@@ -320,5 +390,3 @@ if __name__ == '__main__':
         f.write(plaintext)
 
     create_graph(str(max_index))
-
-
