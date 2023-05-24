@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 # read in the ciphertext
-with open('test2enc.txt', 'r') as f:
+with open('enc.txt', 'r') as f:
     ciphertext = f.read().strip().lower()
     ciphertext = ciphertext.translate(str.maketrans("", "", string.punctuation))
 
@@ -177,8 +177,8 @@ def are_last_n_close(lst):
     if n < 10:
         return False
 
-    last_10 = lst[-15:]
-    return all(abs(last_10[i] - last_10[i - 1]) <= 1 for i in range(1, 15))
+    last_10 = lst[-10:]
+    return all(abs(last_10[i] - last_10[i - 1]) <= 1 for i in range(1, 10))
 
 
 def enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array):
@@ -258,7 +258,7 @@ def gentic_algorithm(index):
 
         if are_last_n_close(average_fittness_array):
             best_scores.append(fitnesses[0])
-            print("in here")
+            print("Early convergence - starting again")
             enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
             return False
 
@@ -287,7 +287,7 @@ def gentic_algorithm(index):
 
         # apply mutation to offspring
         population = elite + [mutate(individual) for individual in offspring]
-        print(f"Generation {generation} - Steps: {steps}, Best Fitness: {best_fitness}")
+        print(f"Generation {generation} - Steps until now: {steps}, Best Fitness: {best_fitness}")
 
     best_scores.append(fitnesses[0])
     enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
