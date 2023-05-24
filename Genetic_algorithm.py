@@ -262,6 +262,12 @@ def gentic_algorithm(index):
             enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
             return False
 
+        if are_last_n_close(best_fitness_array):
+            best_scores.append(fitnesses[0])
+            print("Early convergence - starting again")
+            enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
+            return False
+
         # select elite individuals
         elite = [individual for individual, fitness in fitnesses[:ELITE_SIZE]]
 
