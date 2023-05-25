@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 # read in the ciphertext
-with open('enc.txt', 'r') as f:
+with open('enc2.txt', 'r') as f:
     ciphertext = f.read().strip().lower()
     ciphertext = ciphertext.translate(str.maketrans("", "", string.punctuation))
 
@@ -29,7 +29,7 @@ with open('Letter2_Freq.txt', 'r') as f:
 # define parameters for the genetic algorithm
 POPULATION_SIZE = 100
 NUM_GENERATIONS = 100
-MUTATION_RATE = 0.9
+MUTATION_RATE = 0.75
 ELITE_SIZE = 10
 TOURNAMENT_SIZE = 30
 
@@ -257,12 +257,6 @@ def gentic_algorithm(index):
             break
 
         if are_last_n_close(average_fittness_array):
-            best_scores.append(fitnesses[0])
-            print("Early convergence - starting again")
-            enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)
-            return False
-
-        if are_last_n_close(best_fitness_array):
             best_scores.append(fitnesses[0])
             print("Early convergence - starting again")
             enter_to_dict(index, average_fittness_array, best_fitness_array, steps_array, worst_fittness_array)

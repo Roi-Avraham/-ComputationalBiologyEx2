@@ -26,7 +26,7 @@ In order to run the exercise, we will enter the parameters so that when we run t
 one of the parameters C L D, with each indicating the type of run, classic (C), Lamark (L) or Darwinian (D) respectively.
 For example, in order to run the Darwinian version, we must run the py file and pass the parameter to it as follows: 
 python Genetic_algorithm.py D
-We set the parameters in the code as follows:
+We set the parameters in the code as follows: (you set these in the Genetic_algorithm.py in lines 30-34)
 POPULATION_SIZE The size of the population
 NUM_GENERATIONS The maximum number of generations to run
 MUTATION_RATE Mutation rate
