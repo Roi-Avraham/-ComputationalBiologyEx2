@@ -6,7 +6,7 @@ The input files received for the purpose of the exercise and required to be in t
 - An enc.txt file containing a text segment containing words encrypted by a mono-alphabetic cipher that must be decoded.
 - A file named dict.txt containing a "dictionary" of common English words, a large majority of the words in the text (and of course many other words) are found in it.
 - A file called LetterFreq.txt that contains the frequency of the letters of the English alphabet.
-- A file called Letter2Freq.txt that contains the frequency of letter pairs (the statistics were calculated from a large database of English texts).
+- A file called Letter2Freq.txt that contains the frequency of letter pairs (the statistics were calculated from a large database of English texts).<br>
 The output files are:
 - A file called plain.txt that will contain the encrypted text in decrypted form
 - A file named perm.txt that will contain for each character its permutation.
