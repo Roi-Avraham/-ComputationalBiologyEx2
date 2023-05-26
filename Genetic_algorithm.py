@@ -1,12 +1,63 @@
 import random
 import string
-import sys
 from statistics import mean
 import numpy as np
 from matplotlib import pyplot as plt
+import tkinter as tk
+
+enc_path = ""
+# define parameters for the genetic algorithm
+POPULATION_SIZE = 100
+NUM_GENERATIONS = 100
+MUTATION_RATE = 0.85
+ELITE_SIZE = 10
+TOURNAMENT_SIZE = 30
+# the mode of the algorithm - C for classic D for darvin L for lamark
+MODE = "C"
+
+
+def get_input():
+    global enc_path
+    global MODE
+    MODE = entry_mode.get()
+    enc_path = entry_path.get()
+    root.destroy()
+
+
+root = tk.Tk()
+
+mode_var = tk.StringVar(value="C")
+entry_path_var = tk.StringVar(value="enc.txt")
+
+label_mode = tk.Label(root, text="Enter the mode run (C for classic, D for darvin and L for lamark):")
+label_mode.pack()
+
+entry_mode = tk.Entry(root, textvariable=mode_var)
+entry_mode.pack()
+
+label_path = tk.Label(root, text="Enter the path of the encrypted file:")
+label_path.pack()
+
+entry_path = tk.Entry(root, textvariable=entry_path_var)
+entry_path.pack()
+
+button = tk.Button(root, text="Submit", command=get_input)
+button.pack()
+
+width = 350
+height = 100
+root.geometry(f"{width}x{height}")
+
+root.mainloop()
+
+if MODE != "C" and MODE != "D" and MODE != "L":
+    print("the mode run must be C (for classic) or D (for darwin) or L (for lamark)")
+    exit(-1)
+
+print("mode: ", MODE)
 
 # read in the ciphertext
-with open('enc2.txt', 'r') as f:
+with open(enc_path, 'r') as f:
     ciphertext = f.read().strip().lower()
     ciphertext = ciphertext.translate(str.maketrans("", "", string.punctuation))
 
@@ -25,17 +76,6 @@ with open('Letter2_Freq.txt', 'r') as f:
             letter_pair_freq[pair] = float(freq)
         except ValueError:
             continue
-
-# define parameters for the genetic algorithm
-POPULATION_SIZE = 100
-NUM_GENERATIONS = 100
-MUTATION_RATE = 0.75
-ELITE_SIZE = 10
-TOURNAMENT_SIZE = 30
-
-# the mode of the algorithm - C for classic D for darvin L for lamark
-MODE = sys.argv[1]
-print(MODE)
 
 # the number of times of calculation fittness in the algorithm
 steps = 0
