@@ -19,7 +19,7 @@ The algorithm output 2 graphs:
 
 # Installation
 In order to run this exercise, you have 2 options:
-<br> 1) Double-click on the Genetic_algorithm file.
+<br> 1) Double-click on the Genetic_algorithm.exe file.
 <br> 2) You can run the Genetic_algorithm.py file by python Genetic_algorithm.py .
 In order to do so you will need to install by pip install the next libraries:
 * random
