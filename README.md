@@ -47,9 +47,7 @@ the next inputs</b>:
 If you want to run the algorithm in the classic mode, so you will need to enter C. <br>
 If you want to run the algorithm in the darwin mode, so you will need to enter D. <br>
 If you want to run the algorithm in the lamark mode, so you will need to enter L. <br>
-Please note that if you will not enter one of these input, this error message will show on the console:
-<br>
-![img_2.png](img_2.png)
+Please note that if you will not enter one of these input, this error message will show on the console: ![img_3.png](img_3.png)
 
 and the program will finish.
 
