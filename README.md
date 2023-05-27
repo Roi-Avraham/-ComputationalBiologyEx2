@@ -47,8 +47,10 @@ the next inputs</b>:
 If you want to run the algorithm in the classic mode, so you will need to enter C. <br>
 If you want to run the algorithm in the darwin mode, so you will need to enter D. <br>
 If you want to run the algorithm in the lamark mode, so you will need to enter L. <br>
-Please note that if you will not enter one of these input, this error message will show on the console: ![img_3.png](img_3.png)
-
+Please note that if you will not enter one of these input, this error message will show on the console: 
+<br>
+"the mode run must be C (for classic) or D (for darwin) or L (for lamark)"
+<br>
 and the program will finish.
 
 2) In the second textbox, you will need to enter the path for the encrypted file to be decrypted.
