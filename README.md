@@ -10,29 +10,55 @@ The input files received for the purpose of the exercise and required to be in t
 
 # The output files:
 - A file called plain.txt that will contain the encrypted text in decrypted form
-- A file named perm.txt that will contain for each character its permutation.
+- A file named perm.txt that will contain for each character its permutation.<br>
+
+The algorithm output 2 graphs:
+![img.png](img.png)
+
+![img_1.png](img_1.png)
 
 # Installation
-in order to run this exercise, You can run the Genetic_algorithm.py file. 
-in order to do so you will need the install by pip install the next libaries:
+In order to run this exercise, you have 2 options:
+<br> 1) Double-click on the Genetic_algorithm file.
+<br> 2) You can run the Genetic_algorithm.py file by python Genetic_algorithm.py .
+In order to do so you will need to install by pip install the next libraries:
 * random
 * string
-* sys
+* tkinter
 * statistics
 * numpy
 * matplotlib
+<br>
+
 
 # Usage
-In order to run the exercise, we will enter the parameters so that when we run the program, we will pass as a parameter 
-one of the parameters C L D, with each indicating the type of run, classic (C), Lamark (L) or Darwinian (D) respectively.
-For example, in order to run the Darwinian version, we must run the py file and pass the parameter to it as follows: 
-python Genetic_algorithm.py D
-We set the parameters in the code as follows: (you set these in the Genetic_algorithm.py in lines 30-34)
-POPULATION_SIZE The size of the population
-NUM_GENERATIONS The maximum number of generations to run
-MUTATION_RATE Mutation rate
-ELITE_SIZE The size of the elite population that we transfer to the next generation without making any changes to it.
-TOURNAMENT_SIZE Population size for competition and crossover.
+After running the program (by anyone of the options, we tell in the Installation section),
+the next window will show up:
+![img_2.png](img_2.png)
+
+In this window, you will need to enter 2 things:
+1) In the first textbox you need to enter the run mode of the algorithm. The run mode can be only <b>one of
+the next inputs</b>:
+- C 
+- D 
+- L 
+<br>
+If you want to run the algorithm in the classic mode, so you will need to enter C. <br>
+If you want to run the algorithm in the darwin mode, so you will need to enter D. <br>
+If you want to run the algorithm in the lamark mode, so you will need to enter L. <br>
+Please note that if you will not enter one of these input, this error message will show on the console:
+![img_3.png](img_3.png) 
+and the program will finish.
+
+2) In the second textbox, you will need to enter the path for the encrypted file to be decrypted.
+Please note that if you will enter incorrect path, you will show the next error in the console:
+![img_4.png](img_4.png)
+
+- After entering the inputs, click on the submit button and the algorithm will start to run.
+  the mode run will be print to the console and after each generation, data about the generation will be print for example:
+  ![img_5.png](img_5.png)
+- When the algorithm finishes, you will see the 2 graphs and the files, we mentioned before.
 
 # Dictionary
-Genetic_algorithm - Document that containing the gentic algorithm for decipher a mono-alphabetic cipher.
+Genetic_algorithm.py - Document that containing the genetic algorithm for decipher a mono-alphabetic cipher.
+Genetic_algorithm.exe - the exe file of Genetic_algorithm.
