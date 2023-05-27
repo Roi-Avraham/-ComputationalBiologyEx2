@@ -49,7 +49,7 @@ If you want to run the algorithm in the darwin mode, so you will need to enter D
 If you want to run the algorithm in the lamark mode, so you will need to enter L. <br>
 Please note that if you will not enter one of these input, this error message will show on the console:
 <br>
-![img_3.png](img_3.png) 
+![img_3.png](img_3.png)
 <br>
 and the program will finish.
 
