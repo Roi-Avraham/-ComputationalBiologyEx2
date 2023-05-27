@@ -19,7 +19,7 @@ The algorithm output 2 graphs:
 
 # Installation
 In order to run this exercise, you have 2 options:
-<br> 1) Double-click on the Genetic_algorithm.exe file (takes 20 seconds more or less till the gui window appears)
+<br> 1) Double-click on the Genetic_algorithm.exe file (takes 20 seconds more or less till the gui window appears).
 <br> 2) You can run the Genetic_algorithm.py file by python Genetic_algorithm.py .
 In order to do so you will need to install by pip install the next libraries:
 * random
@@ -32,7 +32,7 @@ In order to do so you will need to install by pip install the next libraries:
 
 
 # Usage
-After running the program (by anyone of the options, we tell in the Installation section),
+After running the program (by one of the options, as mentioned in Installation section),
 the next window will show up:
 <br>
 ![img_2.png](img_2.png)
