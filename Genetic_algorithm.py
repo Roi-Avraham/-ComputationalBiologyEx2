@@ -9,7 +9,7 @@ enc_path = ""
 # define parameters for the genetic algorithm
 POPULATION_SIZE = 100
 NUM_GENERATIONS = 100
-MUTATION_RATE = 0.85
+MUTATION_RATE = 0.9
 ELITE_SIZE = 10
 TOURNAMENT_SIZE = 30
 # the mode of the algorithm - C for classic D for darvin L for lamark
