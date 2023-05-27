@@ -62,6 +62,9 @@ Please note that if you will enter incorrect path, you will show the next error 
   ![img_5.png](img_5.png)
 - When the algorithm finishes, you will see the 2 graphs and the files, we mentioned before.
 
+Note that in every generation we print the number of steps until the current generation, so you can see the number of 
+all steps the algorithm did in the last generation.
+
 # Dictionary
 Genetic_algorithm.py - Document that containing the genetic algorithm for decipher a mono-alphabetic cipher.
 Genetic_algorithm.exe - the exe file of Genetic_algorithm.
